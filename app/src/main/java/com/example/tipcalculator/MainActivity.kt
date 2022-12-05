@@ -33,14 +33,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tipcalculator.components.InputField
 import com.example.tipcalculator.ui.theme.TipCalculatorTheme
+import com.example.tipcalculator.util.calculateAmount
+import com.example.tipcalculator.util.calculateTotalPerPerson
 import com.example.tipcalculator.widgets.RoundIconButton
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-//        TopContainer()
-            MainContainer()
+           Column {
+//               TopContainer()
+               BillForm()
+           }
         }
     }
 }
@@ -60,10 +64,11 @@ fun MyApp(content: @Composable () -> Unit) {
 @Composable
 fun TopContainer(amount: Double = 125.0) {
     Surface(
-        color = Color(0xFFDFD2D2),
+        color = Color.Blue,
         modifier = Modifier
             .fillMaxWidth()
             .height(150.dp)
+            .padding(all = 10.dp)
             .clip(shape = RoundedCornerShape(CornerSize(12.dp)))
     ) {
         val total = "%.2f".format(amount)
@@ -72,10 +77,10 @@ fun TopContainer(amount: Double = 125.0) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Total Per Person", style = TextStyle(fontSize = 25.sp))
+            Text(text = "Total Per Person", style = TextStyle(fontSize = 25.sp, color = Color.White))
             Text(
                 text = "$$total",
-                style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+                style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold,color = Color.White)
             )
         }
     }
@@ -89,6 +94,7 @@ fun MainContainer() {
         Log.d("AMT", billAmt)
 
     }
+
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -106,6 +112,16 @@ fun BillForm(modifier: Modifier = Modifier, onValChange: (String) -> Unit = {}) 
     val sliderValue = remember {
         mutableStateOf(0f)
     }
+    val splitState = remember {
+        mutableStateOf(1)
+    }
+    val percentage = (sliderValue.value * 100).toInt()
+    val tipAmount = remember {
+        mutableStateOf(0.0)
+    }
+    val totalPerPersonState = remember {
+        mutableStateOf(0.0)
+    }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,7 +129,9 @@ fun BillForm(modifier: Modifier = Modifier, onValChange: (String) -> Unit = {}) 
         shape = RoundedCornerShape(CornerSize(5.dp)),
         border = BorderStroke(1.dp, color = Color.DarkGray)
     ) {
+
         Column(modifier = Modifier.padding(12.dp)) {
+            TopContainer(amount = totalPerPersonState.value)
             InputField(
                 valueState = totalBillState,
                 labelId = "Enter the bill",
@@ -126,61 +144,83 @@ fun BillForm(modifier: Modifier = Modifier, onValChange: (String) -> Unit = {}) 
 
                 isSingleLine = true
             )
-//            if (validateState) {
-                Row(
-                    modifier = Modifier.padding(5.dp),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Text(
-                        text = "split",
-                        style = TextStyle(fontSize = 22.sp),
-                        modifier = Modifier.align(alignment = Alignment.CenterVertically)
-                    )
-                    Spacer(modifier = Modifier.width(120.dp))
-                    RoundIconButton(imageVector = Icons.Default.Remove, onclick = {
-                        Log.d("icon", " minus clicked ")
-                    })
-                    Text(
-                        text = "1",
-                        style = TextStyle(fontSize = 20.sp),
-                        modifier = Modifier
-                            .align(alignment = Alignment.CenterVertically)
-                            .padding(start = 10.dp, end = 10.dp),
-                    )
-                    RoundIconButton(imageVector = Icons.Default.Add, onclick = {
-                        Log.d("icon", " add clicked ")
-                    })
-
-
-                }
-            Row( modifier = Modifier.padding(5.dp),
-                horizontalArrangement = Arrangement.Start){
-                Text(text = "Tip",
+            if (validateState) {
+            Row(
+                modifier = Modifier.padding(5.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    text = "split",
+                    style = TextStyle(fontSize = 22.sp),
+                    modifier = Modifier.align(alignment = Alignment.CenterVertically)
+                )
+                Spacer(modifier = Modifier.width(120.dp))
+                RoundIconButton(imageVector = Icons.Default.Remove, onclick = {
+                    Log.d("icon", " minus clicked ")
+                    if(splitState.value >1)
+                    splitState.value --
+                    totalPerPersonState.value = calculateTotalPerPerson(totalBillState.value.toDouble(),splitState.value,percentage)
+                })
+                Text(
+                    text = "${splitState.value}",
                     style = TextStyle(fontSize = 20.sp),
                     modifier = Modifier
-                        .align(alignment = Alignment.CenterVertically))
+                        .align(alignment = Alignment.CenterVertically)
+                        .padding(start = 10.dp, end = 10.dp),
+                )
+                RoundIconButton(imageVector = Icons.Default.Add, onclick = {
+                    Log.d("icon", " add clicked ")
+                    splitState.value ++
+                    totalPerPersonState.value = calculateTotalPerPerson(totalBillState.value.toDouble(),splitState.value,percentage)
+                })
+
+
+            }
+            Row(
+                modifier = Modifier.padding(5.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    text = "Tip",
+                    style = TextStyle(fontSize = 20.sp),
+                    modifier = Modifier
+                        .align(alignment = Alignment.CenterVertically)
+                )
                 Spacer(modifier = Modifier.width(160.dp))
-                Text(text = "%33.00",
+                Text(
+                    text = "$ ${tipAmount.value}",
                     style = TextStyle(fontSize = 20.sp),
                     modifier = Modifier
-                        .align(alignment = Alignment.CenterVertically))
+                        .align(alignment = Alignment.CenterVertically)
+                )
             }
             Spacer(modifier = Modifier.height(20.dp))
-           Column(modifier = Modifier.align(alignment = Alignment.CenterHorizontally)) {
-               Text(text = "%33.00",
-                   style = TextStyle(fontSize = 20.sp))
-               Spacer(modifier = Modifier.height(10.dp))
-               Slider(value = sliderValue.value, onValueChange = {newValue ->
-                   Log.d("slider", "value : $newValue")
-               })
-           }
-//            } else {
-//                Box() {}
-//            }
+            Column(verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally) {
+
+                Text(
+                    text = "% $percentage",
+                    style = TextStyle(fontSize = 20.sp)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Slider(modifier = modifier.padding(start = 10.dp , end = 10.dp),
+
+                    value = sliderValue.value, onValueChange = { newValue ->
+                    sliderValue.value = newValue
+                        tipAmount.value = calculateAmount(totalBillState.value.toDouble(),percentage)
+                        totalPerPersonState.value = calculateTotalPerPerson(totalBillState.value.toDouble(),splitState.value,percentage)
+                    Log.d("slider", "value : $newValue")
+                }, steps = 10)
+            }
+            } else {
+                Box() {}
+            }
         }
     }
 
 }
+
+
 
 //@Preview(showBackground = true)
 @Composable
